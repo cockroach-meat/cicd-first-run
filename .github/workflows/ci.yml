@@ -25,21 +25,21 @@ jobs:
         with:
           python-version: '3.12'
       - name: Run tests
-        run: python -m unittest discover -s demo/tests -v
+        run: python -m unittest discover -s tests -v
       - name: Build site
-        run: python demo/build.py
+        run: python build.py
       - name: Save site artifact
         uses: actions/upload-artifact@v7
         with:
           name: lesson-site
-          path: demo/dist/
+          path: dist/
           if-no-files-found: error
           retention-days: 3
       - name: Upload Pages artifact
         if: github.ref_name == github.event.repository.default_branch && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4
         with:
-          path: demo/dist/
+          path: dist/
 
   deploy:
     needs: check-build
