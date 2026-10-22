@@ -1,14 +1,18 @@
-name: Lesson CI
+name: Lesson CI and CD
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
-    branches: [main]
+    branches: [master, main]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: lesson-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   check-build:
@@ -21,13 +25,36 @@ jobs:
         with:
           python-version: '3.12'
       - name: Run tests
-        run: python -m unittest discover -s tests -v
+        run: python -m unittest discover -s demo/tests -v
       - name: Build site
-        run: python build.py
+        run: python demo/build.py
       - name: Save site artifact
         uses: actions/upload-artifact@v7
         with:
           name: lesson-site
-          path: dist/
+          path: demo/dist/
           if-no-files-found: error
           retention-days: 3
+      - name: Upload Pages artifact
+        if: github.ref_name == github.event.repository.default_branch && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: demo/dist/
+
+  deploy:
+    needs: check-build
+    if: github.ref_name == github.event.repository.default_branch && github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4
